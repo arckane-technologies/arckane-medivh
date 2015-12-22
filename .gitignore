@@ -1,0 +1,38 @@
+# VIM
+
+*.swp
+*.swo
+
+# Bower
+
+/public/components/
+
+#Play Framework
+
+logs
+target
+/.idea
+/.idea_modules
+/.classpath
+/.project
+/.settings
+/RUNNING_PID
+
+bin/
+/db
+.eclipse
+/lib/
+/logs/
+/modules
+/project/project
+/project/target
+/target
+tmp/
+test-result
+server.pid
+*.iml
+*.eml
+/dist/
+.cache
+.sbtserver
+project/.sbtserver
