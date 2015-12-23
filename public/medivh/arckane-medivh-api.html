@@ -1,0 +1,51 @@
+<!--
+@author Francisco Miguel Aramburo Torres - atfm05@gmail.com
+-->
+
+<link rel="import" href="../components/polymer/polymer.html">
+<link rel="import" href="../components/iron-ajax/iron-ajax.html">
+
+<dom-module id="arckane-medivh-api">
+  <template>
+    <iron-ajax id="ajax" on-response="_onResponse" on-error="_onError"></iron-ajax>
+  </template>
+</dom-module>
+
+<script>
+  Polymer({
+
+    is: "arckane-medivh-api",
+
+    _onResponse: function (event, request) {
+      if (typeof request.callback !== "undefined")
+        request.callback(request.response);
+    },
+
+    _onError: function (event) {
+      this.fire("error", {message: event.detail.error.message});
+    },
+
+    /* POST /api/medivh/hash arckane.medivh.MedivhApi.postHash */
+    hash: function (text, callback) {
+      this.$.ajax.method = "POST";
+      this.$.ajax.url = "/api/medivh/hash";
+      this.$.ajax.contentType = "application/json";
+      this.$.ajax.body = {
+        text: text
+      };
+      this.$.ajax.generateRequest().callback = callback;
+    },
+
+    /* POST /api/medivh/signin arckane.medivh.MedivhApi.signin */
+    signin: function (email, password, callback) {
+      this.$.ajax.method = "POST";
+      this.$.ajax.url = "/api/medivh/signin";
+      this.$.ajax.contentType = "application/json";
+      this.$.ajax.body = {
+        email: email,
+        password: password
+      };
+      this.$.ajax.generateRequest().callback = callback;
+    }
+  });
+</script>

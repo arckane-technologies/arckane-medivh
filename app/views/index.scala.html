@@ -1,7 +1,11 @@
-@(message: String)
+@(user: String)
 
-@main("Welcome to Play") {
+@template("Arckane") {
 
-    @play20.welcome(message)
+  <link rel="import" href="@routes.Assets.versioned("medivh/arckane-medivh-index.html")">
+
+  <arckane-app user='@user'>
+    <arckane-medivh-index></arckane-medivh-index>
+  </arckane-app>
 
 }

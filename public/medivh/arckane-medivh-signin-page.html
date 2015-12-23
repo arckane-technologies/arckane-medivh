@@ -1,0 +1,78 @@
+<!--
+@author Francisco Miguel Aramburo Torres - atfm05@gmail.com
+-->
+
+<link rel="import" href="../components/polymer/polymer.html">
+<link rel="import" href="../components/iron-flex-layout/classes/iron-flex-layout.html">
+<link rel="import" href="../components/paper-input/paper-input.html">
+<link rel="import" href="../components/paper-button/paper-button.html">
+<link rel="import" href="../components/paper-card/paper-card.html">
+
+<link rel="import" href="../components/paper-styles/typography.html">
+<link rel="import" href="../components/paper-styles/color.html">
+<link rel="import" href="../utils/arckane-styles.html">
+
+<link rel="import" href="arckane-medivh-api.html">
+
+<!--
+`<arckane-medivh-signin-page>` is a simple form for user authentication.
+-->
+<dom-module id="arckane-medivh-signin-page">
+  <style>
+    :host {
+      display: block;
+      background-color: var(--google-grey-300);
+      @apply(--layout-flex);
+      @apply(--layout-vertical);
+      @apply(--layout-center);
+      @apply(--paper-font-common-base);
+    }
+
+    paper-button {
+      margin: 10px 0px;
+      color: white;
+      width: 100%;
+      background-color: var(--arckane-aqua-100);
+    }
+
+    paper-input {
+      --paper-input-container-color: var(--arckane-aqua-100);
+      --paper-input-container-focus-color: var(--arckane-aqua-100);
+    }
+
+    paper-card {
+      width: 400px;
+    }
+  </style>
+
+  <template>
+    <arckane-medivh-api id="api"></arckane-medivh-api>
+    <div class="flex horizontal layout center">
+      <paper-card>
+        <div class="card-content">
+          <paper-input label="Email" value="{{email}}"></paper-input>
+          <paper-input label="Password" type="password" value="{{password}}"></paper-input>
+        </div>
+        <div class="card-actions">
+          <paper-button on-tap="_signin">Sign In</paper-button>
+        </div>
+      </paper-card>
+    </div>
+  </template>
+</dom-module>
+
+<script>
+  Polymer({
+    is: "arckane-medivh-signin-page",
+
+    _signin: function (event) {
+      var self = this;
+      this.$.api.signin(this.email, this.password, function (response) {
+        if (response.success)
+          window.location.assign("/");
+        else
+          self.fire("error", {message: "Couldn't sign in, wrong email or password."});
+      });
+    }
+  });
+</script>

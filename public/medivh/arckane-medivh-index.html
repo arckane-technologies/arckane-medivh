@@ -1,0 +1,67 @@
+<!--
+@author Francisco Miguel Aramburo Torres - atfm05@gmail.com
+-->
+
+<link rel="import" href="../components/polymer/polymer.html">
+<link rel="import" href="../components/iron-flex-layout/classes/iron-flex-layout.html">
+<link rel="import" href="../components/iron-icon/iron-icon.html">
+
+<link rel="import" href="../components/paper-input/paper-input.html">
+<link rel="import" href="../components/paper-button/paper-button.html">
+<link rel="import" href="../components/paper-card/paper-card.html">
+
+<link rel="import" href="../components/paper-styles/color.html">
+<link rel="import" href="../utils/arckane-styles.html">
+
+<link rel="import" href="arckane-medivh-api.html">
+
+<!--
+`<arckane-medivh-index>` is a simple form for user authentication.
+-->
+<dom-module id="arckane-medivh-index">
+  <style>
+    :host {
+      display: block;
+      --default-primary-color: var(--arckane-aqua-100);
+      --secondary-text-color: var(--arckane-purple-200);
+    }
+
+    .card-actions {
+      @apply(--layout-horizontal);
+    }
+
+    .card-actions paper-button {
+      @apply(--layout-flex);
+      color: var(--arckane-purple-200);
+    }
+  </style>
+
+  <template>
+    <arckane-medivh-api id="api"></arckane-medivh-api>
+    <paper-card heading="Hash Text">
+      <div class="card-content">
+        <div>{{hashResult}}</div>
+        <paper-input label="Text to hash" type="password" value="{{hashInput}}"></paper-input>
+      </div>
+      <div class="card-actions">
+        <paper-button on-tap="_hash">
+          <iron-icon icon="icons:https"></iron-icon>
+          Hash
+        </paper-button>
+      </div>
+    </paper-card>
+  </template>
+</dom-module>
+
+<script>
+  Polymer({
+    is: "arckane-medivh-index",
+
+    _hash: function (event) {
+      var self = this;
+      this.$.api.hash(this.hashInput, function (response) {
+        self.hashResult = response.hash;
+      });
+    }
+  });
+</script>

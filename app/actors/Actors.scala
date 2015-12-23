@@ -15,16 +15,7 @@ import javax.inject.Inject
 
 class Actors @Inject() (implicit app: Application) extends Plugin {
 
-  val james = Akka.system.actorOf(James.props, "james")
-
-  override def onStart() = {
-    println("Starting Actors...")
-    james ! Wake
-  }
-
-  override def onStop() = {
-    println("Shutting down Actors...")
-  }
+  lazy val james = Akka.system.actorOf(James.props, "james")
 }
 
 object Actors {
