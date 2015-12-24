@@ -5,11 +5,14 @@
 package arckane {
   package object actors {
 
-    /** Message to wake up james at init. */
-    case object Wake
-
     case object Pin
 
     case object Pon
+
+    case class Process (payload: String)
+
+    case object ImportArticles
+
+    case class ImportReport (imported: Int)
   }
 }

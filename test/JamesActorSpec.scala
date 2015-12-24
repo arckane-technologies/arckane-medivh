@@ -24,7 +24,9 @@ with BeforeAndAfterAll {
     val app = FakeApplication(additionalConfiguration = Map(
       "neo.address" -> "http://localhost:7474",
       "neo.user" -> "neo4j",
-      "neo.password" -> "admin"))
+      "neo.password" -> "admin",
+      "james.poolsize" -> 8
+    ))
     Play.start(app)
     app.actorSystem
   })
@@ -36,8 +38,8 @@ with BeforeAndAfterAll {
   "James" should {
 
     "echo" in {
-      Actors.james ! Pin
-      expectMsg(Pon)
+      Actors.james ! ImportArticles
+      println(receiveN(8, 30 seconds))
     }
   }
 }
