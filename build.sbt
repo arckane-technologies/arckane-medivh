@@ -11,7 +11,9 @@ libraryDependencies ++= Seq(
   cache,
   ws,
   specs2 % Test,
-  "org.mindrot" % "jbcrypt" % "0.3m"
+  "org.mindrot" % "jbcrypt" % "0.3m",
+  "com.typesafe.akka" %% "akka-testkit" % "2.3.5" % "test",
+  "org.scalatest" % "scalatest_2.11" % "2.2.4" % "test"
 )
 
 resolvers += "scalaz-bintray" at "http://dl.bintray.com/scalaz/releases"

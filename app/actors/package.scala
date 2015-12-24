@@ -7,5 +7,9 @@ package arckane {
 
     /** Message to wake up james at init. */
     case object Wake
+
+    case object Pin
+
+    case object Pon
   }
 }

@@ -35,8 +35,6 @@ class James extends Actor with ActorLogging {
 
   def receive = {
 
-    case Wake =>
-      test
-      log.info("James awake.")
+    case Pin => sender ! Pon
   }
 }
