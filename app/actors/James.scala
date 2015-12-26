@@ -7,6 +7,7 @@ package arckane.actors
 import scala.concurrent._
 import scala.concurrent.duration._
 import scala.io.Source
+import java.io._
 
 import play.api._
 import play.api.libs.ws._
@@ -34,12 +35,26 @@ class James extends Actor with ActorLogging {
   var pagesIterator: Iterator[String] = _
   var pagesWorkersFinished: Int = _
 
-  def getPagesLines: Iterator[String] = Source.fromFile(Play.application.path+"/wikidata/raw/enwiki-20151201-page.sql").getLines drop 51
+  var importingLinks: Boolean = false
+  var importedLinks: Int = _
+  var linksClient: ActorRef = _
+  var linksIterator: Iterator[String] = _
+  var linksWorkersFinished: Int = _
+
+  def getPagesLines: Iterator[String] = Source.fromFile(Play.application.path+"/wikidata/raw/enwiki-20151201-page.sql").getLines
+
+  def getLinksLines: Iterator[String] = Source.fromFile(Play.application.path+"/wikidata/raw/enwiki-20151201-pagelinks.sql").getLines
 
   def getToWork[A <: Command] (iterator: Iterator[String], f: String => A): Unit =
     (1 to workerPoolSize) foreach { _ =>
       if (iterator.hasNext) context.actorOf(N4jImporter.props, genId) ! f(iterator.next)
     }
+
+  def writeToFile (file: String, text: String): Unit = {
+    val pw = new PrintWriter(new FileWriter(file, true))
+    pw.println(text)
+    pw.close
+  }
 
   def receive = {
 
@@ -54,9 +69,34 @@ class James extends Actor with ActorLogging {
 
     case PageBatchImportReport(imported) =>
       importedPages += imported
-      println("[James]    Work report! "+importedPages+" imported pages sir, and working hard...")
+      log.info("[James]    Work report! "+importedPages+" imported pages sir, and working hard...")
       if (pagesIterator.hasNext) {
         sender ! ImportPageBatch(pagesIterator.next)
+      } else {
+        sender ! PoisonPill
+        pagesWorkersFinished += 1
+        if (pagesWorkersFinished == workerPoolSize) {
+          importingPages = false
+          log.info("[James]    Finished good sir! Our team of expert actors imported "+importedPages+" pages.")
+          pagesClient ! ImportReport(importedPages)
+        }
+      }
+
+    case ParsePagesToCSV => if (!importingPages) {
+      importingPages = true
+      pagesClient = sender
+      importedPages = 0
+      pagesWorkersFinished = 0
+      pagesIterator = getPagesLines
+      getToWork(pagesIterator, ParsePageCSV.apply)
+    }
+
+    case PageCSVReport (csv, imported) => if (imported > 0) {
+      importedPages += imported
+      writeToFile("./wikidata/csv/pages.csv", csv)
+      println("[James]    Work report! "+importedPages+" imported pages sir, and working hard...")
+      if (pagesIterator.hasNext) {
+        sender ! ParsePageCSV(pagesIterator.next)
       } else {
         sender ! PoisonPill
         pagesWorkersFinished += 1
@@ -66,5 +106,35 @@ class James extends Actor with ActorLogging {
           pagesClient ! ImportReport(importedPages)
         }
       }
+    } else if (pagesIterator.hasNext) {
+      sender ! ParsePageCSV(pagesIterator.next)
+    }
+
+    case ParseLinksToCSV => if (!importingLinks) {
+      Actors.pagesMem ! LoadPages
+    }
+    //  importingLinks = true
+    //  linksClient = sender
+    //  importedLinks = 0
+    //  linksWorkersFinished = 0
+    //  linksIterator = getLinksLines
+    //  getToWork(linksIterator, ParseLinkCSV.apply)
+    //}
+
+    //case PageCSVReport (csv, imported) =>
+    //  importedLinks += imported
+    //  writeToFile("./wikidata/csv/links.csv", csv)
+    //  println("[James]    Work report! "+importedLinks+" imported links sir, and working hard...")
+    //  if (linksIterator.hasNext) {
+    //    sender ! ParseLinkCSV(linksIterator.next)
+    //  } else {
+    //    sender ! PoisonPill
+    //    linksWorkersFinished += 1
+    //    if (linksWorkersFinished == workerPoolSize) {
+    //      importingLinks = false
+    //      println("[James]    Finished good sir! Our team of expert actors imported "+importedLinks+" links.")
+    //      linksClient ! ImportReport(importedLinks)
+    //    }
+    //  }
   }
 }
