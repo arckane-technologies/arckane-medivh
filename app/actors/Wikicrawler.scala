@@ -54,8 +54,9 @@ class Wikicrawler extends Actor with ActorLogging {
 
   def receive = {
 
-    case Process(url) =>
-      val (articles, categories) = Await.result(getPageLinks(url), 5 seconds)
-      println(articles.length)
+    case _ => println()
+    //case Process(url) =>
+    //  val (articles, categories) = Await.result(getPageLinks(url), 5 seconds)
+    //  println(articles.length)
   }
 }

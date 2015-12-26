@@ -10,6 +10,7 @@ import play.api.libs.concurrent.Execution.Implicits._
 import org.mindrot.jbcrypt.BCrypt
 
 import arckane.users.user._
+import arckane.actors._
 
 class MedivhApi extends Controller {
 
@@ -47,5 +48,10 @@ class MedivhApi extends Controller {
         "error" -> "bad json object"
       )))
     }
+  }
+
+  def postImportPages = Action { request =>
+    Actors.james ! ImportPages
+    Ok
   }
 }

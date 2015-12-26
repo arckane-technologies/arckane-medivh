@@ -5,15 +5,10 @@
 package arckane.actors
 
 import scala.concurrent._
-import scala.concurrent.duration._
 
 import play.api.libs.json._
-import play.api.libs.concurrent.Execution.Implicits._
 
 import akka.actor._
-
-import scala.util.matching.Regex
-import scala.util.matching.Regex.MatchIterator
 
 import arckane.db.transaction._
 
@@ -24,22 +19,33 @@ object N4jImporter {
 
 class N4jImporter extends Actor with ActorLogging {
 
-  val EdgeRegex = """\(([0-9]+),[0-9]+,'((?:\\\'|[^'])+)',[^\)]+\)""".r
+  import context.dispatcher
 
-  def process (input: String)(f: (Int, String) => Unit): Unit = EdgeRegex.findAllIn(input) foreach {
-    case EdgeRegex(pageId, pageTitle) => f(pageId.toInt, pageTitle.replace("\\", "").replace("_", " "))
+  val EdgeRegex = """\((\d+),(0|14),'((?:\\'|[^'])+)','',\d+,0,[^\)]+\)""".r
+
+  def importPageBatch (pages: JsArray): Future[TxResult] = query(Json.obj(
+    "statement" ->
+      "FOREACH (page in {pages} | MERGE (:Wikipedia {pageId:page.p, namespace:page.n, title:page.t}))",
+    "parameters" -> Json.obj(
+      "pages" -> pages
+    )))
+
+  def pagesParamsFromString (input: String): (JsArray, Int) = EdgeRegex.findAllIn(input).foldLeft ((Json.arr(), 0)) {
+    case ((params, count), EdgeRegex(pageId, namespace, title)) =>
+        (params :+ Json.obj(
+          "p" -> pageId.toInt,
+          "n" -> namespace.toInt,
+          "t" -> title.replace("\\", "").replace("_", " ")
+        ), count + 1)
   }
 
   def receive = {
 
-    case Process(string) =>
-      var count = 0
-      var last = ""
-      process(string) { (articleId, articleTitle) =>
-        count = count + 1
-        last = articleTitle
+    case ImportPageBatch (string) =>
+      val (pages, count) = pagesParamsFromString(string)
+      val sen = sender
+      importPageBatch(pages).map { result =>
+        sen ! ImportReport(count)
       }
-      println(last)
-      sender ! ImportReport(count)
   }
 }

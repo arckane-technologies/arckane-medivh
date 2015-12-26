@@ -38,8 +38,8 @@ with BeforeAndAfterAll {
   "James" should {
 
     "echo" in {
-      Actors.james ! ImportArticles
-      println(receiveN(8, 30 seconds))
+      Actors.james ! ImportPages
+      println(receiveN(1, 10 second))
     }
   }
 }

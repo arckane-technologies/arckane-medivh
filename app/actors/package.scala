@@ -9,10 +9,13 @@ package arckane {
 
     case object Pon
 
-    case class Process (payload: String)
+    trait Command
+    case class ImportPageBatch (payload: String) extends Command
+    case class ImportLinkBatch (payload: String) extends Command
 
-    case object ImportArticles
-
+    case object ImportPages
     case class ImportReport (imported: Int)
+
+    case class PageBatchImportReport (imported: Int)
   }
 }
