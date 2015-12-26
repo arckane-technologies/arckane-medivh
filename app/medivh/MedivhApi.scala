@@ -50,7 +50,7 @@ class MedivhApi extends Controller {
     }
   }
 
-  def postImportPages = Action { request =>
+  def getImportPages = Action { request =>
     Actors.james ! ImportPages
     Ok
   }
