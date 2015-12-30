@@ -20,8 +20,15 @@ object N4jImporter {
 class N4jImporter extends Actor with ActorLogging {
 
   import context.dispatcher
+  import akka.pattern.ask
+  import akka.util.Timeout
+  import scala.concurrent.duration._
+  implicit val timeout = Timeout(1 seconds)
 
-  val EdgeRegex = """\((\d+),(0|14),'((?:\\'|[^'])+)','',\d+,0,[^\)]+\)""".r
+  /* https://upload.wikimedia.org/wikipedia/commons/f/f7/MediaWiki_1.24.1_database_schema.svg */
+  val ArticleRegex = """\((\d+),0,'((?:\\'|[^'])+)','',\d+,0,[^\)]+\)""".r
+
+  val EdgeRegex = """\((\d+),0,'((?:\\'|[^'])+)',0\)""".r
 
   val DisambiguationRegexp = """.+\(disambiguation\).*""".r
 
@@ -32,41 +39,42 @@ class N4jImporter extends Actor with ActorLogging {
       "pages" -> pages
     )))
 
-  def pagesParamsFromString (input: String): (JsArray, Int) = EdgeRegex.findAllIn(input).foldLeft ((Json.arr(), 0)) {
-    case ((params, count), EdgeRegex(pageId, namespace, title)) =>
+  def pagesParamsFromString (input: String): (JsArray, Int) = ArticleRegex.findAllIn(input).foldLeft ((Json.arr(), 0)) {
+    case ((params, count), ArticleRegex(pageId, title)) =>
       (params :+ Json.obj(
         "p" -> pageId.toInt,
-        "n" -> namespace.toInt,
         "t" -> title.replace("\\", "").replace("_", " ")
       ), count + 1)
   }
 
-  def namespaceToLabel (namespace: String): String = namespace match {
-    case "0" => "Article"
-    case "14" => "Category"
-  }
-
-  def pagesToCSV (input: String): (String, Int) = EdgeRegex.findAllIn(input).foldLeft (("", 0)) {
-    case ((csv, count), EdgeRegex(pageId, namespace, title)) => title match {
+  /*
+   * Only articles, non-redirects, doesn't have "(disambiguation)" on its name.
+   * (there are still disambiguation pages without (desambiguation) on its name.)
+   */
+  def pagesToCSV (input: String): (String, Int) = ArticleRegex.findAllIn(input).foldLeft (("", 0)) {
+    case ((csv, count), ArticleRegex(pageId, title)) => title match {
       case DisambiguationRegexp(_*) => (csv, count)
       case _ =>
         (csv
           + pageId + ","
-          + "\"" + title.replace("\\", "").replace("\"", "\\\"") + "\","
-          + "Wiki;" + namespaceToLabel(namespace) + "\n"
+          + "\"" + title.replace("\\", "").replace("\"", "\\\"") + "\"\n"
         , count + 1)
     }
   }
 
   def linksToCSV (input: String): (String, Int) = EdgeRegex.findAllIn(input).foldLeft (("", 0)) {
-    case ((csv, count), EdgeRegex(pageId, namespace, title)) => title match {
-      case DisambiguationRegexp(_*) => (csv, count)
+    case ((csv, count), EdgeRegex(fromId, toTitle)) => toTitle match {
+      case DisambiguationRegexp(_*) =>
+        (csv, count)
       case _ =>
-        (csv
-          + pageId + ","
-          + "\"" + title.replace("\\", "").replace("_", " ") + "\","
-          + "Wiki;" + namespaceToLabel(namespace) + "\n"
-        , count + 1)
+        val title = toTitle.replace("\\", "").replace("\"", "\\\"")
+        (for {
+          _ <- Await.result(Actors.pagesMem ? GetTitle(fromId), 1 seconds).asInstanceOf[Option[String]]
+          a <- Await.result(Actors.pagesMem ? GetId(title), 1 seconds).asInstanceOf[Option[String]]
+        } yield a) match {
+          case None => (csv, count)
+          case Some(toId) => (csv + fromId + "," + toId + "\n" , count + 1)
+        }
     }
   }
 
@@ -83,8 +91,8 @@ class N4jImporter extends Actor with ActorLogging {
       val (csv, count) = pagesToCSV(string)
       sender ! PageCSVReport(csv, count)
 
-    //case ParseLinkCSV (string) =>
-    //  val (csv, count) = toCSV(string)
-    //  sender ! PageCSVReport(csv, count)
+    case ParseLinkCSV (string) =>
+      val (csv, count) = linksToCSV(string)
+      sender ! LinkCSVReport(csv, count)
   }
 }

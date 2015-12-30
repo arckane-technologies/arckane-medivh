@@ -10,7 +10,9 @@ GET     /signout                    controllers.Application.signout
 # Medivh API
 POST    /api/medivh/hash            arckane.medivh.MedivhApi.postHash
 POST    /api/medivh/signin          arckane.medivh.MedivhApi.signin
-GET     /api/medivh/import/pages    arckane.medivh.MedivhApi.getImportPages
+GET     /api/medivh/pages/import    arckane.medivh.MedivhApi.getImportPages
+GET     /api/medivh/pages/csv       arckane.medivh.MedivhApi.pagesCSV
+GET     /api/medivh/links/csv       arckane.medivh.MedivhApi.linksCSV
 GET     /work                       arckane.medivh.MedivhApi.work
 
 # Map static resources from the /public folder to the /assets URL path

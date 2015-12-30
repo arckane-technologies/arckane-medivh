@@ -55,19 +55,29 @@ class MedivhApi extends Controller {
     Ok
   }
 
+  def pagesCSV = Action { request =>
+    Actors.james ! ParsePagesToCSV
+    Ok
+  }
+
+  def linksCSV = Action { request =>
+    Actors.james ! ParseLinksToCSV
+    Ok
+  }
+
   def work = Action.async { request =>
     //Actors.james ! ParsePagesToCSV
     //Actors.james ! ParseLinksToCSV
     import akka.pattern.ask
     import akka.util.Timeout
     import scala.concurrent.duration._
-    implicit val timeout = Timeout(10 seconds)
+    implicit val timeout = Timeout(10 minutes)
     for {
       finish <- Actors.pagesMem ? LoadPages
-      response <- Actors.pagesMem ? GetTitle("70624")
+      response <- Actors.pagesMem ? GetTitle("Monad")
     } yield response match {
       case None => Ok("No such page")
-      case Some(title: String) => Ok(title)
+      case Some(title: String) => println("got it!"); Ok(title)
     }
   }
 }

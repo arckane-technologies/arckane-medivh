@@ -11,8 +11,8 @@ package arckane {
 
     case object LoadPages
     case object LoadPagesFinished
-    case class GetTitle (pageid: String)
-    case class GetPageid (title: String)
+    case class GetTitle (page: String)
+    case class GetId (page: String)
 
     trait Command
     case class ImportPageBatch (payload: String) extends Command
@@ -27,5 +27,6 @@ package arckane {
 
     case class PageBatchImportReport (imported: Int)
     case class PageCSVReport (payload: String, imported: Int)
+    case class LinkCSVReport (payload: String, imported: Int)
   }
 }

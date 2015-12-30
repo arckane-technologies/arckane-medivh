@@ -41,9 +41,11 @@ class James extends Actor with ActorLogging {
   var linksIterator: Iterator[String] = _
   var linksWorkersFinished: Int = _
 
-  def getPagesLines: Iterator[String] = Source.fromFile(Play.application.path+"/wikidata/raw/enwiki-20151201-page.sql").getLines
+  var memLoadCount: Int = _
 
-  def getLinksLines: Iterator[String] = Source.fromFile(Play.application.path+"/wikidata/raw/enwiki-20151201-pagelinks.sql").getLines
+  def getPagesLines: Iterator[String] = Source.fromFile(Play.application.path+"/wikidata/raw/enwiki-20151201-page.sql").getLines drop 51
+
+  def getLinksLines: Iterator[String] = Source.fromFile(Play.application.path+"/wikidata/raw/enwiki-20151201-pagelinks.sql").getLines drop 40
 
   def getToWork[A <: Command] (iterator: Iterator[String], f: String => A): Unit =
     (1 to workerPoolSize) foreach { _ =>
@@ -52,7 +54,7 @@ class James extends Actor with ActorLogging {
 
   def writeToFile (file: String, text: String): Unit = {
     val pw = new PrintWriter(new FileWriter(file, true))
-    pw.println(text)
+    pw.print(text)
     pw.close
   }
 
@@ -94,15 +96,16 @@ class James extends Actor with ActorLogging {
     case PageCSVReport (csv, imported) => if (imported > 0) {
       importedPages += imported
       writeToFile("./wikidata/csv/pages.csv", csv)
-      println("[James]    Work report! "+importedPages+" imported pages sir, and working hard...")
+      println("[James]    Work report! "+importedPages+" parsed pages sir, and working hard...")
       if (pagesIterator.hasNext) {
         sender ! ParsePageCSV(pagesIterator.next)
       } else {
         sender ! PoisonPill
         pagesWorkersFinished += 1
+        println("[James]    "+pagesWorkersFinished+" workers finished.")
         if (pagesWorkersFinished == workerPoolSize) {
           importingPages = false
-          println("[James]    Finished good sir! Our team of expert actors imported "+importedPages+" pages.")
+          println("[James]    Finished good sir! Our team of expert actors parsed "+importedPages+" pages.")
           pagesClient ! ImportReport(importedPages)
         }
       }
@@ -111,30 +114,32 @@ class James extends Actor with ActorLogging {
     }
 
     case ParseLinksToCSV => if (!importingLinks) {
+      importingLinks = true
+      memLoadCount = 0
+      linksClient = sender
+      importedLinks = 0
+      linksWorkersFinished = 0
+      linksIterator = getLinksLines
       Actors.pagesMem ! LoadPages
     }
-    //  importingLinks = true
-    //  linksClient = sender
-    //  importedLinks = 0
-    //  linksWorkersFinished = 0
-    //  linksIterator = getLinksLines
-    //  getToWork(linksIterator, ParseLinkCSV.apply)
-    //}
 
-    //case PageCSVReport (csv, imported) =>
-    //  importedLinks += imported
-    //  writeToFile("./wikidata/csv/links.csv", csv)
-    //  println("[James]    Work report! "+importedLinks+" imported links sir, and working hard...")
-    //  if (linksIterator.hasNext) {
-    //    sender ! ParseLinkCSV(linksIterator.next)
-    //  } else {
-    //    sender ! PoisonPill
-    //    linksWorkersFinished += 1
-    //    if (linksWorkersFinished == workerPoolSize) {
-    //      importingLinks = false
-    //      println("[James]    Finished good sir! Our team of expert actors imported "+importedLinks+" links.")
-    //      linksClient ! ImportReport(importedLinks)
-    //    }
-    //  }
+    case LoadPagesFinished =>
+      getToWork(linksIterator, ParseLinkCSV.apply)
+
+    case LinkCSVReport (csv, imported) =>
+      importedLinks += imported
+      writeToFile("./wikidata/csv/links.csv", csv)
+      println("[James]    Work report! "+importedLinks+" parsed links sir, and working hard...")
+      if (linksIterator.hasNext) {
+        sender ! ParseLinkCSV(linksIterator.next)
+      } else {
+        sender ! PoisonPill
+        linksWorkersFinished += 1
+        if (linksWorkersFinished == workerPoolSize) {
+          importingLinks = false
+          println("[James]    Finished good sir! Our team of expert actors parsed "+importedLinks+" links.")
+          linksClient ! ImportReport(importedLinks)
+        }
+      }
   }
 }
